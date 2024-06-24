@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:f="/lib/form" xmlns:l="/lib/layout" xmlns:st="jelly:stapler">
+    <l:layout title="TLS-Anvil Report">
+        <st:include page="sidepanel.jelly" it="${it.run}" optional="true" />
+        <l:main-panel>
+            <?jelly escape-by-default='false'?>
+            ${it.hallo}
+        </l:main-panel>
+    </l:layout>
+</j:jelly>

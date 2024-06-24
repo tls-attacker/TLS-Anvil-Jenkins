@@ -1,0 +1,60 @@
+<?jelly escape-by-default='true'?>
+<j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+    <!--<f:entry title="${%Arguments}" field="args">
+        <f:textbox />
+    </f:entry>-->
+    <f:entry title="Testmode" field="endpointMode">
+            <f:radioBlock title="Server" value="server" checked="true" name="endpointMode">
+                <f:entry title="Start Server Script" field="serverScript">
+                    <f:textbox placeholder="./my-tls-server -port 4433"/>
+                </f:entry>
+                <f:entry title="Server IP/Host" field="host">
+                    <f:textbox placeholder="localhost:4433"/>
+                </f:entry>
+                <f:radioBlock title="Do not send SNI Extension" value="true" checked="true" name="sniExtension"/>
+
+                <f:radioBlock title="Send SNI Extension" value="false" checked="false" name="sniExtension">
+                    <f:entry title="Server Name (SNI)" field="sniName">
+                        <f:textbox />
+                    </f:entry>
+                </f:radioBlock>
+            </f:radioBlock>
+            <f:radioBlock title="Client" value="client" checked="false" name="endpointMode">
+                <f:entry title="TLS-Anvil Server Port" field="port">
+                    <f:number min="1" max="65535" value="4433"/>
+                </f:entry>
+                <f:entry title="Client Trigger Script" field="clientScript">
+                    <f:textbox placeholder="./my-tls-client -connect localhost:4433"/>
+                </f:entry>
+            </f:radioBlock>
+    </f:entry>
+    <f:entry title="Strength" field="strength">
+        <f:number value="1" min="1" max="5"/>
+    </f:entry>
+    <f:entry title="Parallel Testcases" field="parallelTestcase">
+        <f:number value="1" min="1" max="100"/>
+    </f:entry>
+    <f:advanced>
+        <f:entry title="Connection Timeout (ms)" field="timeout">
+            <f:number value="200" min="10" max="5000"/>
+        </f:entry>
+        <f:entry title="Don't capture Network Traffic" field="disableTcpDump">
+            <f:checkbox />
+        </f:entry>
+        <f:entry title="DTLS" field="useDtls">
+            <f:checkbox />
+        </f:entry>
+        <f:entry title="Ignore cache" field="ignoreCache">
+            <f:checkbox />
+        </f:entry>
+        <f:entry title="Restart target after ... failed attempts" field="restartAfter">
+            <f:number min="0" max="10" value="0"/>
+        </f:entry>
+        <f:entry title="Tags" field="tags">
+            <f:textbox />
+        </f:entry>
+        <f:entry title="Testpackage" field="testPackage">
+            <f:textbox value="de.rub.nds.tlstest.suite"/>
+        </f:entry>
+    </f:advanced>
+</j:jelly>
