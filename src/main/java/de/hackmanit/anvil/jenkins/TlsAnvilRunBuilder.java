@@ -20,10 +20,12 @@ import java.util.Map;
 import javax.servlet.ServletException;
 
 import jenkins.tasks.SimpleBuildStep;
+import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.docker.commons.tools.DockerTool;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.StaplerRequest;
 
 public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
 
@@ -96,7 +98,11 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         FilePath anvilOut = workspace.child("anvil-out");
 
         // clean up former builds
-        //anvilOut.deleteContents();
+        anvilOut.deleteContents();
+
+        // start server
+        Launcher.ProcStarter procStarter = launcher.launch();
+
 
         // create docker process
         Launcher.ProcStarter procStarter = launcher.launch();
@@ -108,7 +114,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         cmds.add("-outputFolder", "./");
         cmds.add(args);
         OutputStream err = new ByteArrayOutputStream();
-        /**int result = procStarter.cmds(cmds)
+        int result = procStarter.cmds(cmds)
                 .stdout(listener.getLogger())
                 .stderr(err)
                 .start()
@@ -118,7 +124,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         }
         if (result != 0) {
             throw new AbortException("TLS-Anvil: Report generation failed.");
-        }**/
+        }
 
         // archive results
         workspace.child("tls-anvil-report.zip").delete();
@@ -158,15 +164,37 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         public final String endpointMode;
         public final String serverScript;
         public final String host;
+        public final boolean runOnce;
         public final SniConfig sniConfig;
 
 
         @DataBoundConstructor
-        public EndpointConfig(String value, String serverScript, String host, SniConfig sniExtension) {
+        public EndpointConfig(String value, String serverScript, boolean runOnce, String host, SniConfig sniExtension) {
             this.endpointMode = value;
             this.serverScript = serverScript;
+            this.runOnce = runOnce;
             this.host = host;
             this.sniConfig = sniExtension;
+        }
+
+        public String getValue() {
+            return endpointMode;
+        }
+
+        public String getServerScript() {
+            return serverScript;
+        }
+
+        public String getHost() {
+            return host;
+        }
+
+        public boolean getRunOnce() {
+            return runOnce;
+        }
+
+        public SniConfig getSniExtension() {
+            return sniConfig;
         }
 
         public class SniConfig {
@@ -176,7 +204,55 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             public SniConfig(String value) {
                 this.value = value;
             }
+
+            public String getValue() {
+                return value;
+            }
         }
+    }
+
+    public EndpointConfig getEndpointMode() {
+        return endpointConfig;
+    }
+
+    public String getStrength() {
+        return strength;
+    }
+
+    public String getParallelTestcase() {
+        return parallelTestcase;
+    }
+
+    public String getTimeout() {
+        return timeout;
+    }
+
+    public boolean isDisableTcpDump() {
+        return disableTcpDump;
+    }
+
+    public boolean isUseDtls() {
+        return useDtls;
+    }
+
+    public boolean isIgnoreCache() {
+        return ignoreCache;
+    }
+
+    public String getRestartAfter() {
+        return restartAfter;
+    }
+
+    public String getTags() {
+        return tags;
+    }
+
+    public String getTestPackage() {
+        return testPackage;
+    }
+
+    public List<String> getArgs() {
+        return args;
     }
 
     @Symbol("runTlsAnvil")
@@ -194,6 +270,13 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             }
             return FormValidation.ok();
         }
+
+        @Override
+        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
+            return super.configure(req, json);
+        }
+
+
 
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {
