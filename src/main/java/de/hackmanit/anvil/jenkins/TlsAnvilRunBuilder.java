@@ -8,17 +8,7 @@ import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.ArgumentListBuilder;
-import hudson.util.DirScanner;
 import hudson.util.FormValidation;
-
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import javax.servlet.ServletException;
-
 import jenkins.tasks.SimpleBuildStep;
 import net.sf.json.JSONObject;
 import org.jenkinsci.Symbol;
@@ -27,24 +17,32 @@ import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import javax.servlet.ServletException;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+
 public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
 
     private final EndpointConfig endpointConfig;
-    private final String strength;
-    private final String parallelTestcase;
-    private final String timeout;
+    private final int strength;
+    private final int parallelTestcase;
+    private final int timeout;
     private final boolean disableTcpDump;
     private final boolean useDtls;
     private final boolean ignoreCache;
-    private final String restartAfter;
+    private final int restartAfter;
     private final String tags;
     private final String testPackage;
     private List<String> args;
 
     @DataBoundConstructor
-    public TlsAnvilRunBuilder(EndpointConfig endpointMode, String strength,
-                              String parallelTestcase, String timeout, boolean disableTcpDump, boolean useDtls,
-                              boolean ignoreCache, String restartAfter, String tags, String testPackage) {
+    public TlsAnvilRunBuilder(EndpointConfig endpointMode, int strength,
+                                int parallelTestcase, int timeout, boolean disableTcpDump, boolean useDtls,
+                                boolean ignoreCache, int restartAfter, String tags, String testPackage) {
 
         this.endpointConfig = endpointMode;
         this.strength = strength;
@@ -58,9 +56,9 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         this.testPackage = testPackage;
 
         ArgumentListBuilder argB = new ArgumentListBuilder();
-        argB.add("-strength", strength);
-        argB.add("-parallelTestCases", parallelTestcase);
-        argB.add("-connectionTimeout", timeout);
+        argB.add("-strength", String.valueOf(strength));
+        argB.add("-parallelTestCases", String.valueOf(parallelTestcase));
+        argB.add("-connectionTimeout", String.valueOf(timeout));
         if (disableTcpDump) {
             argB.add("-disableTcpDump");
         }
@@ -70,7 +68,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         if (ignoreCache) {
             argB.add("-ignoreCache");
         }
-        argB.add("-restartTargetAfter", restartAfter);
+        argB.add("-restartTargetAfter", String.valueOf(restartAfter));
         if (!tags.trim().isEmpty()) {
             argB.add("-tags", tags.trim());
         }
@@ -78,7 +76,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         argB.add(endpointConfig.endpointMode);
         if (endpointConfig.endpointMode.equalsIgnoreCase("server")) {
             argB.add("-connect", endpointConfig.host);
-            if (endpointConfig.sniConfig.value.equalsIgnoreCase("true")) {
+            if (endpointConfig.sniConfig.useSni.equalsIgnoreCase("true")) {
                 argB.add("-doNotSendSNIExtension");
             } else {
                 //argB.add("-server_name", endpointConfig.sniConfig.server_name);
@@ -177,83 +175,35 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             this.sniConfig = sniExtension;
         }
 
-        public String getValue() {
-            return endpointMode;
-        }
-
-        public String getServerScript() {
-            return serverScript;
-        }
-
-        public String getHost() {
-            return host;
-        }
-
-        public boolean getRunOnce() {
-            return runOnce;
-        }
-
-        public SniConfig getSniExtension() {
-            return sniConfig;
-        }
-
         public class SniConfig {
 
-            public String value;
+            public String useSni;
+            public String sniName;
             @DataBoundConstructor
-            public SniConfig(String value) {
-                this.value = value;
-            }
-
-            public String getValue() {
-                return value;
+            public SniConfig(String value, String sniName) {
+                this.useSni = value;
+                this.sniName = sniName;
             }
         }
     }
 
-    public EndpointConfig getEndpointMode() {
-        return endpointConfig;
-    }
-
-    public String getStrength() {
-        return strength;
-    }
-
-    public String getParallelTestcase() {
-        return parallelTestcase;
-    }
-
-    public String getTimeout() {
-        return timeout;
-    }
-
-    public boolean isDisableTcpDump() {
-        return disableTcpDump;
-    }
-
-    public boolean isUseDtls() {
-        return useDtls;
-    }
-
-    public boolean isIgnoreCache() {
-        return ignoreCache;
-    }
-
-    public String getRestartAfter() {
-        return restartAfter;
-    }
-
-    public String getTags() {
-        return tags;
-    }
-
-    public String getTestPackage() {
-        return testPackage;
-    }
-
-    public List<String> getArgs() {
-        return args;
-    }
+    public String getEndpointMode() { return endpointConfig.endpointMode; }
+    public String getServerScript() { return endpointConfig.serverScript; }
+    public boolean isRunOnce() { return endpointConfig.runOnce; }
+    public String getHost() { return endpointConfig.host; }
+    public String isSniExtension() { return endpointConfig.sniConfig != null ? endpointConfig.sniConfig.useSni : "false"; }
+    public String getSniName() { return endpointConfig.sniConfig != null ? endpointConfig.sniConfig.sniName : ""; }
+    public int getPort() { return 123; }
+    public String getClientScript() { return "123"; }
+    public int getStrength() { return strength; }
+    public int getParallelTestcase() { return parallelTestcase; }
+    public int getTimeout() { return timeout; }
+    public boolean isDisableTcpDump() { return disableTcpDump; }
+    public boolean isUseDtls() { return useDtls; }
+    public boolean isIgnoreCache() { return ignoreCache; }
+    public int getRestartAfter() { return restartAfter; }
+    public String getTags() { return tags; }
+    public String getTestPackage() { return testPackage; }
 
     @Symbol("runTlsAnvil")
     @Extension

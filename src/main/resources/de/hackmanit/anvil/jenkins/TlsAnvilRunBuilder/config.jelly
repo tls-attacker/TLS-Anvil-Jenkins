@@ -4,7 +4,7 @@
         <f:textbox />
     </f:entry>-->
     <f:entry title="Testmode">
-            <f:radioBlock title="Server" value="server" checked="true" name="endpointMode">
+            <f:radioBlock title="Server" value="server" checked="${instance.endpointMode == 'server' || instance.endpointMode == null}" name="endpointMode">
                 <f:block>
                     <f:entry title="Start Server Script" field="serverScript">
                         <f:textbox placeholder="./my-tls-server -port 4433"/>
@@ -14,15 +14,15 @@
                 <f:entry title="Server IP/Host" field="host">
                     <f:textbox placeholder="localhost:4433"/>
                 </f:entry>
-                <f:radioBlock title="Do not send SNI Extension" value="true" checked="true" name="sniExtension"/>
+                <f:radioBlock title="Do not send SNI Extension" value="false" checked="${instance.sniExtension == 'false' || instance.sniExtension == null}" name="sniExtension"/>
 
-                <f:radioBlock title="Send SNI Extension" value="false" checked="false" name="sniExtension">
+                <f:radioBlock title="Send SNI Extension" value="true" checked="${instance.sniExtension == 'true'}" name="sniExtension">
                     <f:entry title="Server Name (SNI)" field="sniName">
                         <f:textbox />
                     </f:entry>
                 </f:radioBlock>
             </f:radioBlock>
-            <f:radioBlock title="Client" value="client" checked="false" name="endpointMode">
+            <f:radioBlock title="Client" value="client" checked="${instance.endpointMode == 'client'}" name="endpointMode">
                 <f:entry title="TLS-Anvil Server Port" field="port">
                     <f:number min="1" max="65535"/>
                 </f:entry>
