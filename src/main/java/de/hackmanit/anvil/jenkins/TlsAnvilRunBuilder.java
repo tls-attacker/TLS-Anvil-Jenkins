@@ -28,21 +28,21 @@ import java.util.Map;
 public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
 
     private final EndpointConfig endpointConfig;
-    private final int strength;
-    private final int parallelTestcase;
-    private final int timeout;
+    private final Integer strength;
+    private final Integer parallelTestcase;
+    private final Integer timeout;
     private final boolean disableTcpDump;
     private final boolean useDtls;
     private final boolean ignoreCache;
-    private final int restartAfter;
+    private final Integer restartAfter;
     private final String tags;
     private final String testPackage;
     private List<String> args;
 
     @DataBoundConstructor
-    public TlsAnvilRunBuilder(EndpointConfig endpointMode, int strength,
-                                int parallelTestcase, int timeout, boolean disableTcpDump, boolean useDtls,
-                                boolean ignoreCache, int restartAfter, String tags, String testPackage) {
+    public TlsAnvilRunBuilder(EndpointConfig endpointMode, Integer strength,
+                              Integer parallelTestcase, Integer timeout, boolean disableTcpDump, boolean useDtls,
+                                boolean ignoreCache, Integer restartAfter, String tags, String testPackage) {
 
         this.endpointConfig = endpointMode;
         this.strength = strength;
@@ -54,6 +54,14 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         this.ignoreCache = ignoreCache;
         this.tags = tags;
         this.testPackage = testPackage;
+
+        buildTlsAnvilArguments();
+    }
+
+    /**
+     * Takes the parameters given by the builder and translates them to TLS-Anvil command line arguments.
+     */
+    private void buildTlsAnvilArguments() {
 
         ArgumentListBuilder argB = new ArgumentListBuilder();
         argB.add("-strength", String.valueOf(strength));
@@ -79,12 +87,13 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             if (endpointConfig.sniConfig.useSni.equalsIgnoreCase("true")) {
                 argB.add("-doNotSendSNIExtension");
             } else {
-                //argB.add("-server_name", endpointConfig.sniConfig.server_name);
+                argB.add("-server_name", endpointConfig.sniConfig.sniName);
             }
         } else {
-            //argB.add("-port", endpointConfig.port);
-            //argB.add("-triggerScript", endpointConfig.triggerScript);
+            argB.add("-port", String.valueOf(endpointConfig.port));
+            argB.add("-triggerScript", endpointConfig.clientScript);
         }
+
         args = argB.toList();
     }
 
@@ -98,30 +107,44 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         // clean up former builds
         anvilOut.deleteContents();
 
-        // start server
-        Launcher.ProcStarter procStarter = launcher.launch();
+        // create target process
+        ProcessManager targetProcess = new ProcessManager(launcher, listener);
+        if (endpointConfig.endpointMode.equalsIgnoreCase("server")
+                && !endpointConfig.serverScript.isEmpty()) {
+            if (endpointConfig.runOnce) {
+                targetProcess.runProcessOnce(endpointConfig.serverScript.split(" "));
+            } else {
+                targetProcess.startProcessLoop(endpointConfig.serverScript.split(" "));
+            }
+        }
 
-
-        // create docker process
-        Launcher.ProcStarter procStarter = launcher.launch();
-        ArgumentListBuilder cmds = new ArgumentListBuilder();
-        cmds.add(DockerTool.getExecutable(null, null, listener, null));
-        cmds.add("run", "--rm", "-t", "--name", "tls-anvil-jenkins", "--network", "host");
-        cmds.add("-v", anvilOut.getRemote()+":/output/");
-        cmds.add("ghcr.io/tls-attacker/tlsanvil:latest");
-        cmds.add("-outputFolder", "./");
-        cmds.add(args);
-        OutputStream err = new ByteArrayOutputStream();
-        int result = procStarter.cmds(cmds)
+        // start TLS-Anvil
+        Launcher.ProcStarter anvilProcStarter = launcher.launch();
+        ArgumentListBuilder dockerAnvilArgs = new ArgumentListBuilder();
+        dockerAnvilArgs.add(DockerTool.getExecutable(null, null, listener, null));
+        dockerAnvilArgs.add("run", "--rm", "-t", "--name", "tls-anvil-jenkins", "--network", "host");
+        dockerAnvilArgs.add("-v", anvilOut.getRemote()+":/output/");
+        dockerAnvilArgs.add("ghcr.io/tls-attacker/tlsanvil:latest");
+        dockerAnvilArgs.add("-outputFolder", "./");
+        dockerAnvilArgs.add(args);
+        OutputStream anvilErrStream = new ByteArrayOutputStream();
+        int anvilResult = anvilProcStarter.cmds(dockerAnvilArgs)
                 .stdout(listener.getLogger())
-                .stderr(err)
+                .stderr(anvilErrStream)
                 .start()
                 .join();
-        if (!err.toString().trim().isEmpty()) {
-            listener.error(err.toString());
+        if (!anvilErrStream.toString().trim().isEmpty()) {
+            listener.error(anvilErrStream.toString());
         }
-        if (result != 0) {
-            throw new AbortException("TLS-Anvil: Report generation failed.");
+
+        // stop the target process
+        if (endpointConfig.endpointMode.equalsIgnoreCase("server")
+                && !endpointConfig.serverScript.isEmpty()) {
+            targetProcess.stopProcess();
+        }
+
+        if (anvilResult != 0) {
+            throw new AbortException("TLS-Anvil: TLS-Anvil execution failed.");
         }
 
         // archive results
@@ -131,23 +154,24 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         }
         run.getArtifactManager().archive(anvilOut, launcher, new StreamBuildListener(listener.getLogger(), StandardCharsets.UTF_8), Map.of("report.json", "report.json"));
         run.getArtifactManager().archive(workspace, launcher, new StreamBuildListener(listener.getLogger(), StandardCharsets.UTF_8), Map.of("report.zip", "tls-anvil-report.zip"));
+
         // run AnvilWeb report generator
-        ArgumentListBuilder cmds2 = new ArgumentListBuilder();
-        cmds2.add(DockerTool.getExecutable(null, null, listener, null));
-        cmds2.add("run", "--rm", "-t", "--name", "anvil-web-jenkins");
-        cmds2.add("-v", anvilOut+":/input/");
-        cmds2.add("-v", anvilOut+"/reportOut/:/output/");
-        cmds2.add("ghcr.io/tls-attacker/anvil-web:latest-reportgen");
-        OutputStream err2 = new ByteArrayOutputStream();
-        int result2 = procStarter.cmds(cmds2)
+        ArgumentListBuilder dockerReportGenArgs = new ArgumentListBuilder();
+        dockerReportGenArgs.add(DockerTool.getExecutable(null, null, listener, null));
+        dockerReportGenArgs.add("run", "--rm", "-t", "--name", "anvil-web-jenkins");
+        dockerReportGenArgs.add("-v", anvilOut+":/input/");
+        dockerReportGenArgs.add("-v", anvilOut+"/reportOut/:/output/");
+        dockerReportGenArgs.add("ghcr.io/tls-attacker/anvil-web:latest-reportgen");
+        OutputStream reportGenErrStream = new ByteArrayOutputStream();
+        int reportGenResult = anvilProcStarter.cmds(dockerReportGenArgs)
                 .stdout(listener.getLogger())
-                .stderr(err2)
+                .stderr(reportGenErrStream)
                 .start()
                 .join();
-        if (!err2.toString().trim().isEmpty()) {
-            listener.error(err2.toString());
+        if (!reportGenErrStream.toString().trim().isEmpty()) {
+            listener.error(reportGenErrStream.toString());
         }
-        if (result2 != 0) {
+        if (reportGenResult != 0) {
             throw new AbortException("TLS-Anvil: Report generation failed.");
         }
 
@@ -157,25 +181,31 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
 
     }
 
-    public class EndpointConfig {
+    // boilerplate ...
+
+    public static class EndpointConfig {
 
         public final String endpointMode;
         public final String serverScript;
         public final String host;
         public final boolean runOnce;
         public final SniConfig sniConfig;
+        public final Integer port;
+        public final String clientScript;
 
 
         @DataBoundConstructor
-        public EndpointConfig(String value, String serverScript, boolean runOnce, String host, SniConfig sniExtension) {
+        public EndpointConfig(String value, String serverScript, boolean runOnce, String host, Integer port, String clientScript, SniConfig sniExtension) {
             this.endpointMode = value;
             this.serverScript = serverScript;
             this.runOnce = runOnce;
             this.host = host;
+            this.port = port;
+            this.clientScript = clientScript;
             this.sniConfig = sniExtension;
         }
 
-        public class SniConfig {
+        public static class SniConfig {
 
             public String useSni;
             public String sniName;
@@ -193,15 +223,15 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
     public String getHost() { return endpointConfig.host; }
     public String isSniExtension() { return endpointConfig.sniConfig != null ? endpointConfig.sniConfig.useSni : "false"; }
     public String getSniName() { return endpointConfig.sniConfig != null ? endpointConfig.sniConfig.sniName : ""; }
-    public int getPort() { return 123; }
-    public String getClientScript() { return "123"; }
-    public int getStrength() { return strength; }
-    public int getParallelTestcase() { return parallelTestcase; }
-    public int getTimeout() { return timeout; }
+    public Integer getPort() { return endpointConfig.port; }
+    public String getClientScript() { return endpointConfig.clientScript; }
+    public Integer getStrength() { return strength; }
+    public Integer getParallelTestcase() { return parallelTestcase; }
+    public Integer getTimeout() { return timeout; }
     public boolean isDisableTcpDump() { return disableTcpDump; }
     public boolean isUseDtls() { return useDtls; }
     public boolean isIgnoreCache() { return ignoreCache; }
-    public int getRestartAfter() { return restartAfter; }
+    public Integer getRestartAfter() { return restartAfter; }
     public String getTags() { return tags; }
     public String getTestPackage() { return testPackage; }
 
@@ -209,24 +239,12 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
     @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
-        public FormValidation doCheckName(@QueryParameter String value, @QueryParameter boolean useFrench)
-                throws IOException, ServletException {
-            if (value.length() == 0)
-                return FormValidation.error(Messages.HelloWorldBuilder_DescriptorImpl_errors_missingName());
-            if (value.length() < 4)
-                return FormValidation.warning(Messages.HelloWorldBuilder_DescriptorImpl_warnings_tooShort());
-            if (!useFrench && value.matches(".*[éáàç].*")) {
-                return FormValidation.warning(Messages.HelloWorldBuilder_DescriptorImpl_warnings_reallyFrench());
+        public FormValidation doCheckStrength(@QueryParameter int value) {
+            if (value < 1 || value > 5) {
+                return FormValidation.error("Strength must be between 1 and 5");
             }
             return FormValidation.ok();
         }
-
-        @Override
-        public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
-            return super.configure(req, json);
-        }
-
-
 
         @Override
         public boolean isApplicable(Class<? extends AbstractProject> aClass) {

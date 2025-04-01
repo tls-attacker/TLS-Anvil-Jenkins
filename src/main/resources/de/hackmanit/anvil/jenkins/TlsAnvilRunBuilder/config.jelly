@@ -24,7 +24,7 @@
             </f:radioBlock>
             <f:radioBlock title="Client" value="client" checked="${instance.endpointMode == 'client'}" name="endpointMode">
                 <f:entry title="TLS-Anvil Server Port" field="port">
-                    <f:number min="1" max="65535"/>
+                    <f:number min="1" max="65535" value="${instance.port != null ? instance.port : 8443}"/>
                 </f:entry>
                 <f:entry title="Client Trigger Script" field="clientScript">
                     <f:textbox placeholder="./my-tls-client -connect localhost:4433"/>
@@ -32,14 +32,14 @@
             </f:radioBlock>
     </f:entry>
     <f:entry title="Strength" field="strength">
-        <f:number min="1" max="5"/>
+        <f:number min="1" max="5" value="${instance.strength != null ? instance.strength : 3}"/>
     </f:entry>
     <f:entry title="Parallel Testcases" field="parallelTestcase">
-        <f:number  min="1" max="100"/>
+        <f:number  min="1" max="100" value="${instance.parallelTestcase != null ? instance.parallelTestcase : 1}"/>
     </f:entry>
     <f:advanced>
         <f:entry title="Connection Timeout (ms)" field="timeout">
-            <f:number min="10" max="5000"/>
+            <f:number min="10" max="5000" value="${instance.timeout != null ? instance.timeout : 200}"/>
         </f:entry>
         <f:entry title="Don't capture Network Traffic" field="disableTcpDump">
             <f:checkbox />
@@ -51,13 +51,13 @@
             <f:checkbox />
         </f:entry>
         <f:entry title="Restart target after ... failed attempts" field="restartAfter">
-            <f:number min="0" max="10" />
+            <f:number min="0" max="10" value="${instance.restartAfter != null ? instance.restartAfter : 3}"/>
         </f:entry>
         <f:entry title="Tags" field="tags">
             <f:textbox />
         </f:entry>
         <f:entry title="Testpackage" field="testPackage">
-            <f:textbox />
+            <f:textbox value="${instance.testPackage != null ? instance.testPackage : 'de.rub.nds.tlstest.suite.tests'}" />
         </f:entry>
     </f:advanced>
 </j:jelly>
