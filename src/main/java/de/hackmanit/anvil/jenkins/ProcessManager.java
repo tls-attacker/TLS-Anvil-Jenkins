@@ -23,8 +23,7 @@ public class ProcessManager {
             while (this.running) {
                 try {
                     Launcher.ProcStarter ps = this.launcher.launch()
-                            .cmds(args)
-                            .stdout(this.taskListener.getLogger());
+                            .cmds(args);
 
                     this.process = ps.start();
                     this.process.join(); // Wait for process to exit
@@ -34,15 +33,16 @@ public class ProcessManager {
                 }
             }
         }).start();
+        this.taskListener.getLogger().println("Started target process loop.");
     }
 
     public void runProcessOnce(String[] args) {
         try {
             Launcher.ProcStarter ps = this.launcher.launch()
-                    .cmds(args)
-                    .stdout(this.taskListener.getLogger());
+                    .cmds(args);
 
             this.process = ps.start();
+            this.taskListener.getLogger().println("Started target process.");
 
         } catch (Exception e) {
             this.taskListener.getLogger().println("Error starting target process: " + e.getMessage());
@@ -56,5 +56,6 @@ public class ProcessManager {
             this.taskListener.getLogger().println("Error killing target process: " + e.getMessage());
         }
         running = false;
+        this.taskListener.getLogger().println("Stopped target process.");
     }
 }

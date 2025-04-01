@@ -9,7 +9,7 @@
                     <f:entry title="Start Server Script" field="serverScript">
                         <f:textbox placeholder="./my-tls-server -port 4433"/>
                     </f:entry>
-                    <f:booleanRadio false="Run once" true="Run in a loop" field="runOnce" />
+                    <f:booleanRadio true="Run once" false="Run in a loop" field="runOnce" />
                 </f:block>
                 <f:entry title="Server IP/Host" field="host">
                     <f:textbox placeholder="localhost:4433"/>

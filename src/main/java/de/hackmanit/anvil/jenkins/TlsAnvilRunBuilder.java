@@ -84,7 +84,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         argB.add(endpointConfig.endpointMode);
         if (endpointConfig.endpointMode.equalsIgnoreCase("server")) {
             argB.add("-connect", endpointConfig.host);
-            if (endpointConfig.sniConfig.useSni.equalsIgnoreCase("true")) {
+            if (endpointConfig.sniConfig.useSni.equalsIgnoreCase("false")) {
                 argB.add("-doNotSendSNIExtension");
             } else {
                 argB.add("-server_name", endpointConfig.sniConfig.sniName);
@@ -111,10 +111,12 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         ProcessManager targetProcess = new ProcessManager(launcher, listener);
         if (endpointConfig.endpointMode.equalsIgnoreCase("server")
                 && !endpointConfig.serverScript.isEmpty()) {
+            ArgumentListBuilder targetArguments = new ArgumentListBuilder();
+            targetArguments.addTokenized(endpointConfig.serverScript);
             if (endpointConfig.runOnce) {
-                targetProcess.runProcessOnce(endpointConfig.serverScript.split(" "));
+                targetProcess.runProcessOnce(targetArguments.toCommandArray());
             } else {
-                targetProcess.startProcessLoop(endpointConfig.serverScript.split(" "));
+                targetProcess.startProcessLoop(targetArguments.toCommandArray());
             }
         }
 
