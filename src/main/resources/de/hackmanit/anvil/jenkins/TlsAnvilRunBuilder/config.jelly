@@ -4,7 +4,8 @@
         <f:textbox />
     </f:entry>-->
     <f:entry title="Testmode">
-            <f:radioBlock title="Server" value="server" checked="${instance.endpointMode == 'server' || instance.endpointMode == null}" name="endpointMode">
+            <f:radioBlock title="Server" value="server" inline="true"
+                          checked="${instance.endpointMode == 'server' || instance.endpointMode == null}" name="endpointMode">
                 <f:block>
                     <f:entry title="Start Server Script" field="serverScript">
                         <f:textbox placeholder="./my-tls-server -port 4433"/>
@@ -16,13 +17,15 @@
                 </f:entry>
                 <f:radioBlock title="Do not send SNI Extension" value="false" checked="${instance.sniExtension == 'false' || instance.sniExtension == null}" name="sniExtension"/>
 
-                <f:radioBlock title="Send SNI Extension" value="true" checked="${instance.sniExtension == 'true'}" name="sniExtension">
+                <f:radioBlock title="Send SNI Extension" value="true" inline="true"
+                              checked="${instance.sniExtension == 'true'}" name="sniExtension">
                     <f:entry title="Server Name (SNI)" field="sniName">
                         <f:textbox />
                     </f:entry>
                 </f:radioBlock>
             </f:radioBlock>
-            <f:radioBlock title="Client" value="client" checked="${instance.endpointMode == 'client'}" name="endpointMode">
+            <f:radioBlock title="Client" value="client" inline="true"
+                          checked="${instance.endpointMode == 'client'}" name="endpointMode">
                 <f:entry title="TLS-Anvil Server Port" field="port">
                     <f:number min="1" max="65535" value="${instance.port != null ? instance.port : 8443}"/>
                 </f:entry>
@@ -60,4 +63,12 @@
             <f:textbox value="${instance.testPackage != null ? instance.testPackage : 'de.rub.nds.tlstest.suite.tests'}" />
         </f:entry>
     </f:advanced>
+    <f:optionalBlock title="Compare with expected results"
+                     checked="${instance.expectedResults != null &amp;&amp; !instance.expectedResults.trim().isEmpty()}"
+                     name="compareResults" inline="true">
+        <f:entry title="Expected Results (JSON) or path to .json file" field="expectedResults">
+            <f:textarea value="${instance.expectedResults != null ? instance.expectedResults : instance.expectedDefault}"
+                        codemirror-mode="javascript" codemirror-config="'json': true, 'lineNumbers': true" />
+        </f:entry>
+    </f:optionalBlock>
 </j:jelly>

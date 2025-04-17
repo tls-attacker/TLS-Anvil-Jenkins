@@ -49,6 +49,18 @@ public class ProcessManager {
         }
     }
 
+    public boolean isProcessRunning() {
+        if (this.process == null) {
+            return false;
+        }
+
+        try {
+            return this.process.isAlive();
+        } catch (IOException | InterruptedException e) {
+            return false;
+        }
+    }
+
     public void stopProcess() {
         try {
             this.process.kill();
