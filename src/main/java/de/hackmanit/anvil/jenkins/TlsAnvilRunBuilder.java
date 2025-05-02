@@ -110,20 +110,15 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         argB.add("-testPackage", testPackage.trim());
         if (expectedResults != null && !expectedResults.trim().isEmpty()) {
             argB.add("-expectedResults");
-            // if its JSON, use custom file, else use path
-            if (expectedResults.trim().startsWith("{")) {
-                argB.add("expected.json");
-            } else {
-                argB.add(expectedResults);
-            }
+            argB.add("/data/anvil-expected.json");
         }
         argB.add(endpointMode);
         if (endpointMode.equalsIgnoreCase("server")) {
             argB.add("-connect", host);
             if (useSni) {
-                argB.add("-doNotSendSNIExtension");
-            } else {
                 argB.add("-server_name", sniName);
+            } else {
+                argB.add("-doNotSendSNIExtension");
             }
         } else {
             argB.add("-port", String.valueOf(port));
@@ -159,8 +154,12 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             }
 
             // write expected results
-            if (expectedResults != null && expectedResults.trim().startsWith("{")) {
-                Files.writeString(Path.of("expected.json"), expectedResults);
+            if (expectedResults != null && !expectedResults.trim().isEmpty()) {
+                if (expectedResults.trim().startsWith("{")) {
+                    workspace.child("anvil-expected.json").write(expectedResults, "UTF-8");
+                } else {
+                    workspace.child(expectedResults).copyTo(workspace.child("anvil-expected.json"));
+                }
             }
             // start TLS-Anvil
             Launcher.ProcStarter anvilProcStarter = launcher.launch();
@@ -168,6 +167,9 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             dockerAnvilArgs.add(DockerTool.getExecutable(null, null, listener, null));
             dockerAnvilArgs.add("run", "--rm", "-t", "--name", "tls-anvil-jenkins", "--network", "host");
             dockerAnvilArgs.add("-v", anvilOut.getRemote() + ":/output/");
+            if (expectedResults != null && !expectedResults.isEmpty()) {
+                dockerAnvilArgs.add("-v", workspace.child("anvil-expected.json").getRemote() + ":/data/anvil-expected.json");
+            }
             dockerAnvilArgs.add("ghcr.io/tls-attacker/tlsanvil:latest");
             dockerAnvilArgs.add("-outputFolder", "./");
             dockerAnvilArgs.add(args);
