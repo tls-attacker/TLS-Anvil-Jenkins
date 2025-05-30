@@ -62,6 +62,12 @@
         <f:entry title="Testpackage" field="testPackage">
             <f:textbox value="${instance.testPackage != null ? instance.testPackage : 'de.rub.nds.tlstest.suite.tests'}" />
         </f:entry>
+        <f:entry title="Profile Folder" field="profileFolder">
+            <f:textbox value="${instance.profileFolder != null ? instance.profileFolder : './'}"/>
+        </f:entry>
+        <f:entry title="Active Profile(s) (without .json extension)" field="profiles">
+            <f:textbox />
+        </f:entry>
     </f:advanced>
     <f:optionalBlock title="Compare with expected results"
                      checked="${instance.expectedResults != null &amp;&amp; !instance.expectedResults.trim().isEmpty()}"
