@@ -37,8 +37,11 @@
     <f:entry title="Strength" field="strength">
         <f:number min="1" max="5" value="${instance.strength != null ? instance.strength : 3}"/>
     </f:entry>
-    <f:entry title="Parallel Testcases" field="parallelTestcase">
-        <f:number  min="1" max="100" value="${instance.parallelTestcase != null ? instance.parallelTestcase : 1}"/>
+    <f:entry title="Parallel Handshakes" field="parallelHandshakes">
+        <f:number  min="1" max="100" value="${instance.parallelHandshakes != null ? instance.parallelHandshakes : 1}"/>
+    </f:entry>
+    <f:entry title="Parallel Tests" field="parallelTests">
+        <f:number  min="1" max="100" value="${instance.parallelTests != null ? instance.parallelTests : 2}"/>
     </f:entry>
     <f:advanced>
         <f:entry title="Connection Timeout (ms)" field="timeout">

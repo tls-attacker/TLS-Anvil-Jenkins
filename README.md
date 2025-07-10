@@ -64,7 +64,7 @@ pipeline {
 - There are various other settings specific to TLS-Anvil, that you can also see on the Jenkins pipeline syntax page.
   - `disableTcpDump`: (Boolean) Whether to disable logging network traffic (default is `false`).
   - `ignoreCache`: (Boolean) Whether to ignore the cache when scanning for features (default is `false`).
-  - `parallelTestcase`: (Integer) Number of parallel test cases to run (default is `1`).
+  - `parallelHandshakes`: (Integer) Number of parallel handshakes to run (default is `1`).
   - `sniName`: (String) The SNI name to use, when useSni is true.
   - `strength`: (Integer) The strength of the test (default is `3`).
   - `tags`: (String) If set, TLS-Anvil only runs tests with these specific tags.

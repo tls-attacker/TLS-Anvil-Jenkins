@@ -11,7 +11,7 @@
 
   <groupId>de.hackmanit.anvil</groupId>
   <artifactId>tls-jenkins-plugin</artifactId>
-  <version>1.3.1-R1</version>
+  <version>1.4.0-R1</version>
   <packaging>hpi</packaging>
 
   <name>TLS-Anvil Runner</name>

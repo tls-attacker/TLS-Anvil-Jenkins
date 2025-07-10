@@ -24,7 +24,7 @@ import java.util.Map;
 
 public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
 
-    public static final String ANVIL_VERSION = "v1.3.1";
+    public static final String ANVIL_VERSION = "v1.4.0";
     public static final String EXPECTED_DEFAULT = "{\n  \"STRICTLY_SUCCEEDED\": [],\n  \"CONCEPTUALLY_SUCCEEDED\": [],\n  \"FULLY_FAILED\": [],\n  \"DISABLED\": [],\n  \"PARTIALLY_FAILED\": []\n}";
 
     public final String endpointMode;
@@ -39,7 +39,8 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
     public final String clientScript;
     // general
     public final Integer strength;
-    public final Integer parallelTestcase;
+    public final Integer parallelHandshakes;
+    public final Integer parallelTests;
     // advanced
     public final Integer timeout;
     public final boolean disableTcpDump;
@@ -60,7 +61,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
     @DataBoundConstructor
     public TlsAnvilRunBuilder(String endpointMode, String serverScript, boolean runOnce, String host, Integer port,
                               String clientScript, boolean useSni, String sniName,
-                              Integer strength, Integer parallelTestcase, Integer timeout, boolean disableTcpDump,
+                              Integer strength, Integer parallelHandshakes, Integer parallelTests, Integer timeout, boolean disableTcpDump,
                               boolean useDtls, boolean ignoreCache, Integer restartAfter, String tags,
                               String testPackage, String expectedResults, boolean compareResults, String profileFolder,
                               String profiles) {
@@ -74,7 +75,8 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
         this.port = endpointMode.equalsIgnoreCase("client") ? port : null;
         this.clientScript = endpointMode.equalsIgnoreCase("client") ? clientScript : null;
         this.strength = strength;
-        this.parallelTestcase = parallelTestcase;
+        this.parallelHandshakes = parallelHandshakes;
+        this.parallelTests = parallelTests;
         this.timeout = timeout;
         this.disableTcpDump = disableTcpDump;
         this.useDtls = useDtls;
@@ -96,7 +98,8 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
 
         ArgumentListBuilder argB = new ArgumentListBuilder();
         argB.add("-strength", String.valueOf(strength));
-        argB.add("-parallelTestCases", String.valueOf(parallelTestcase));
+        argB.add("-parallelHandshakes", String.valueOf(parallelHandshakes));
+        argB.add("-parallelTests", String.valueOf(parallelTests));
         argB.add("-connectionTimeout", String.valueOf(timeout));
         if (disableTcpDump) {
             argB.add("-disableTcpDump");
@@ -175,7 +178,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             Launcher.ProcStarter anvilProcStarter = launcher.launch();
             ArgumentListBuilder dockerAnvilArgs = new ArgumentListBuilder();
             dockerAnvilArgs.add(DockerTool.getExecutable(null, null, listener, null));
-            dockerAnvilArgs.add("run", "--rm", "-t", "--name", "tls-anvil-jenkins", "--network", "host");
+            dockerAnvilArgs.add("run", "--rm", "--name", "tls-anvil-jenkins", "--network", "host");
             dockerAnvilArgs.add("-v", anvilOut.getRemote() + ":/output/");
             if (expectedResults != null && !expectedResults.isEmpty()) {
                 dockerAnvilArgs.add("-v", workspace.child("anvil-expected.json").getRemote() + ":/data/anvil-expected.json");
@@ -212,7 +215,7 @@ public class TlsAnvilRunBuilder extends Builder implements SimpleBuildStep {
             // run AnvilWeb report generator
             ArgumentListBuilder dockerReportGenArgs = new ArgumentListBuilder();
             dockerReportGenArgs.add(DockerTool.getExecutable(null, null, listener, null));
-            dockerReportGenArgs.add("run", "--rm", "-t", "--name", "anvil-web-jenkins");
+            dockerReportGenArgs.add("run", "--rm", "--pull", "always", "--name", "anvil-web-jenkins");
             dockerReportGenArgs.add("-v", anvilOut + ":/input/");
             dockerReportGenArgs.add("-v", anvilOut + "/reportOut/:/output/");
             dockerReportGenArgs.add("ghcr.io/tls-attacker/anvil-web:latest-reportgen");
